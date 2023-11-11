@@ -23,7 +23,7 @@ interface Props {
   onClose: () => void;
 }
 
-const Sidebar: React.FC<Props> = ({ open, onClose, menu }) => {
+export const Sidebar: React.FC<Props> = ({ open, onClose, menu }) => {
   const { push } = useRouter();
   const mdUp = useMediaQuery<Theme>(theme => theme.breakpoints.up("md"));
   const [collapsed, setCollapsed] = useState("");
