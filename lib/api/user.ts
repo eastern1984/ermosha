@@ -4,6 +4,8 @@ import remarkMdx from 'remark-mdx';
 import { serialize } from 'next-mdx-remote/serialize';
 import type { MDXRemoteSerializeResult } from 'next-mdx-remote';
 
+export const ARTICLE_PATH = 'article';
+
 export interface UserProps {
   name: string;
   username: string;
@@ -77,135 +79,108 @@ export async function getFirstUser(): Promise<UserProps | null> {
   }
 }
 
-export async function getAllUsers(): Promise<ResultProps[]> {
+export async function getCrumbs(area: string, path: string[] = []): Promise<any> {
   const client = await clientPromise;
-  const collection = client.db('test').collection('users');
-  return await collection
-    .aggregate<ResultProps>([
-      {
-        //sort by follower count
-        $sort: {
-          followers: -1
-        }
-      },
-      {
-        $limit: 100
-      },
-      {
-        $group: {
-          _id: {
-            $toLower: { $substrCP: ['$name', 0, 1] }
-          },
-          users: {
-            $push: {
-              name: '$name',
-              username: '$username',
-              email: '$email',
-              image: '$image',
-              followers: '$followers',
-              verified: '$verified'
-            }
-          },
-          count: { $sum: 1 }
-        }
-      },
-      {
-        //sort alphabetically
-        $sort: {
-          _id: 1
-        }
-      }
-    ])
-    .toArray();
+  const menuCollection = client.db('apologetika').collection('mainmenuitems');
+  const themesCollection = client.db('apologetika').collection('themes');
+  const isArticle = (path.length > 1) && (path[path.length - 2] === ARTICLE_PATH);
+  const themesPath = isArticle ? path.slice(0, -2) : path;
+  const areaItem = await menuCollection.findOne({ url: area });
+  if (!areaItem) {
+    return [];
+  }
+
+  let url = `/${area}`;
+  const resultThemes = [];
+  for (let i = 0; i < themesPath.length; i++) {
+    const theme = await themesCollection.findOne({ url: themesPath[i] });
+    url = `${url}/${themesPath[i]}`;
+    resultThemes.push({ title: theme?.text, url });
+  }
+
+  return [{ title: areaItem.text, url: `/${areaItem.url}` }, ...resultThemes];
 }
 
-export async function searchUser(query: string): Promise<UserProps[]> {
+export async function getContent(area: string, path: string[] = []): Promise<any> {
   const client = await clientPromise;
-  const collection = client.db('test').collection('users');
-  return await collection
-    .aggregate<UserProps>([
-      {
-        $search: {
-          index: 'name-index',
-          /* 
-          name-index is a search index as follows:
+  const lastPath = path.length ? path[path.length - 1] : '';
+  const isArticle = (path.length > 1) && (path[path.length - 2] === ARTICLE_PATH);
+  const themesCollection = client.db('apologetika').collection('themes');
+  const articlesCollection = client.db('apologetika').collection('articles');
 
-          {
-            "mappings": {
-              "fields": {
-                "followers": {
-                  "type": "number"
-                },
-                "name": {
-                  "analyzer": "lucene.whitespace",
-                  "searchAnalyzer": "lucene.whitespace",
-                  "type": "string"
-                },
-                "username": {
-                  "type": "string"
-                }
-              }
-            }
-          }
+  const parentTheme = isArticle ? null : await themesCollection.findOne({ url: lastPath });
+  const parentId = parentTheme?._id.toString() || "";
+  const resultThemes = isArticle ? [] : (await themesCollection.find({ area, parent: parentId, deleted: { $ne: true } })
+    .toArray())
+    .map(v => {
+      const { _id, ...data } = v;
+      return data
+    });
 
-          */
-          text: {
-            query: query,
-            path: {
-              wildcard: '*' // match on both name and username
-            },
-            fuzzy: {},
-            score: {
-              // search ranking algorithm: multiply relevance score by the log1p of follower count
-              function: {
-                multiply: [
-                  {
-                    score: 'relevance'
-                  },
-                  {
-                    log1p: {
-                      path: {
-                        value: 'followers'
-                      }
-                    }
-                  }
-                ]
-              }
-            }
-          }
-        }
-      },
-      {
-        // filter out users that are not verified
-        $match: {
-          verified: true
-        }
-      },
-      // limit to 10 results
-      {
-        $limit: 10
-      },
-      {
-        $project: {
-          _id: 0,
-          emailVerified: 0,
-          score: {
-            $meta: 'searchScore'
-          }
-        }
-      }
-    ])
-    .toArray();
+  const resultArticles = (await articlesCollection.find(isArticle ? { url: lastPath } : { area, parent: parentId, deleted: { $ne: true } })
+    .project(isArticle ? {} : { text: 0 })
+    .toArray())
+    .map(v => {
+      const { _id, ...data } = v;
+      return data
+    });
+  return {
+    isArticle,
+    themes: resultThemes,
+    articles: resultArticles
+  };
 }
 
-export async function getUserCount(): Promise<number> {
+export async function getLimitArticles(limit: number): Promise<any> {
   const client = await clientPromise;
-  const collection = client.db('test').collection('users');
-  return await collection.countDocuments();
+  const articlesCollection = client.db('apologetika').collection('articles');
+
+  const resultArticles = (await articlesCollection.find({ deleted: { $ne: true } }).limit(limit)
+    .project({ text: 0 })
+    .toArray())
+    .map(v => {
+      const { _id, ...data } = v;
+      return data
+    });
+  return {
+    articles: resultArticles
+  };
 }
 
-export async function updateUser(username: string, bio: string) {
+export async function getMainMenu(): Promise<any[]> {
   const client = await clientPromise;
-  const collection = client.db('test').collection('users');
-  return await collection.updateOne({ username }, { $set: { bio } });
+  const collection = client.db('apologetika').collection('mainmenuitems');
+  const result = (await collection.find().project({ text: 1, url: 1, parent: 1 }).toArray()).map(v => { const { _id, ...data } = v; return data });
+  const menus = result.filter(v => !v.parent);
+  const childs = result.filter(v => v.parent);
+
+  return menus.map(v => ({ ...v, childrens: childs.filter(item => item.parent === v.url) }))
+}
+
+export async function getThemeUrls(): Promise<any[]> {
+  const client = await clientPromise;
+  const collection = client.db('apologetika').collection('themes');
+  const result = (await collection.find({ deleted: { $ne: true } })
+    .project({ url: 1 })
+    .toArray())
+    .map(v => {
+      const { _id, ...data } = v;
+      return data.url
+    });
+
+  return result;
+}
+
+export async function getArticleUrls(): Promise<any[]> {
+  const client = await clientPromise;
+  const collection = client.db('apologetika').collection('articles');
+  const result = (await collection.find({ deleted: { $ne: true } })
+    .project({ url: 1 })
+    .toArray())
+    .map(v => {
+      const { _id, ...data } = v;
+      return data.url
+    });
+
+  return result;
 }

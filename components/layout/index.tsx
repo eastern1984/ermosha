@@ -1,15 +1,50 @@
-import { useState, ReactNode } from 'react';
-import Sidebar from './sidebar';
-import Navbar from './navbar';
-import Directory from './directory';
-import { ResultProps } from '@/lib/api/user';
-import Toast from '@/components/layout/toast';
-import Meta, { MetaProps } from '@/components/layout/meta';
-import { useRouter } from 'next/router';
-import { LoadingDots } from '@/components/icons';
-import ClusterProvisioning from '@/components/layout/cluster-provisioning';
+import React, { useMemo, useState } from "react";
+import { Box, Breadcrumbs, Container, Typography } from "@mui/material";
+import { bodyWrapper, breadcrumbItem, breadcrumbWrapper, container } from "./styles";
 
-export default function Layout({
+import PublicHeader from "./PublicHeader";
+import Sidebar from "./Sidebar";
+import Footer from "./Footer";
+import Link from "next/link";
+
+interface PrivateLayoutProps {
+  title: string;
+  children: any;
+  menu: any;
+  crumbs: any;
+}
+
+const PrivateLayout: React.FC<PrivateLayoutProps> = ({ children, title, menu, crumbs }) => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Box sx={{ minWidth: "320px", bgcolor: "#F8F8F8" }}>
+      <PublicHeader isSidebar title={title} toggleOpen={() => setOpen(!open)} />
+      <Sidebar
+        menu={menu}
+        open={open}
+        onClose={() => setOpen(false)}
+      />
+      <Box component="main" sx={bodyWrapper}>
+        <Container maxWidth="lg" sx={container}>
+          <Breadcrumbs aria-label="breadcrumb" sx={breadcrumbWrapper}>
+            <Link href={"/"}><Typography>Главная</Typography></Link>
+            {crumbs?.map((v: any) => (
+              <Link key={v.url} href={v.url}><Typography>{v.title}</Typography></Link>
+            ))}
+          </Breadcrumbs>
+          {children}
+        </Container>
+      </Box>
+      <Footer isSidebar />
+    </Box>
+
+  );
+};
+
+export default PrivateLayout;
+
+/*export default function Layout({
   meta,
   results,
   totalUsers,
@@ -55,7 +90,7 @@ export default function Layout({
       <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
         <div className="flex-1 relative z-0 flex overflow-hidden">
           <main className="flex-1 relative z-0 overflow-y-auto focus:outline-none xl:order-last">
-            {/* Navbar */}
+  
             <Navbar setSidebarOpen={setSidebarOpen} />
 
             {children}
@@ -68,3 +103,4 @@ export default function Layout({
     </div>
   );
 }
+*/

@@ -4,6 +4,7 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     domains: [
+      'www.google.com',
       'avatars.githubusercontent.com',
       'avatar.tobi.sh',
       'cloudflare-ipfs.com',
