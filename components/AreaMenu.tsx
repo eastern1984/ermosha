@@ -17,7 +17,7 @@ const AreaMenu: React.FC<Props> = ({ content }) => {
             {content.isArticle && <Stack spacing={2}>
                 <Typography variant="h5">{article?.title}</Typography>
                 {article.videoLink &&
-                    <iframe width="560" height="315" src={article.videoLink} title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                    <iframe width="560" height="315" src={article.videoLink} title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"></iframe>
                 }
                 {article?.shortDescription?.map((v: any) => <Typography key={v.text}>{v.text}</Typography>)}
                 {article?.text && <Typography align="justify" dangerouslySetInnerHTML={{ __html: article.text.replaceAll(`\n`, '<br />') }}></Typography>}

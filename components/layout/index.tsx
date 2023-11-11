@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { Box, Breadcrumbs, Container, Typography } from "@mui/material";
-import { bodyWrapper, breadcrumbItem, breadcrumbWrapper, container } from "./styles";
+import { bodyWrapper, breadcrumbWrapper, container } from "./styles";
 
 import PublicHeader from "./PublicHeader";
 import Sidebar from "./Sidebar";

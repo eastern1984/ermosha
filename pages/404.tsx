@@ -1,6 +1,5 @@
 import Meta, { defaultMetaProps } from '@/components/layout/meta';
 import { useRouter } from 'next/dist/client/router';
-export { getStaticProps } from '.';
 
 export default function Custom404() {
   const { query } = useRouter();

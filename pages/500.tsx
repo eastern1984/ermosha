@@ -1,5 +1,4 @@
 import Meta, { defaultMetaProps } from '@/components/layout/meta';
-export { getStaticProps } from '.';
 
 export default function Custom500() {
   return (
