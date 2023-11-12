@@ -6,7 +6,7 @@ import { bodyWrapper, breadcrumbWrapper, container } from "./styles";
 import Link from "next/link";
 
 import PublicHeader from "./PublicHeader";
-import { Sidebar } from "./Sidebar";
+import Sidebar from "./SidebarComp";
 import Footer from "./Footer";
 
 interface PrivateLayoutProps {
